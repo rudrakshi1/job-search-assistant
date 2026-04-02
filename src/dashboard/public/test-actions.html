@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Action Tester — Job Agent</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Courier New',monospace; background:#0c0c0e; color:#e8e6df; padding:24px; }
+h1 { color:#c9a96e; font-size:18px; margin-bottom:4px; }
+.sub { color:#6e6c66; font-size:12px; margin-bottom:24px; }
+.card { background:#141418; border:1px solid rgba(255,255,255,0.1); border-radius:8px; padding:20px; margin-bottom:16px; }
+.card-title { color:#c9a96e; font-size:13px; font-weight:bold; margin-bottom:12px; text-transform:uppercase; letter-spacing:.08em; }
+label { display:block; font-size:11px; color:#6e6c66; margin-bottom:4px; margin-top:10px; text-transform:uppercase; }
+input, textarea, select { width:100%; padding:8px 10px; background:#1c1c22; border:1px solid rgba(255,255,255,0.1); border-radius:4px; color:#e8e6df; font-family:'Courier New',monospace; font-size:12px; }
+textarea { height:100px; resize:vertical; }
+.btn { display:inline-block; padding:8px 16px; border-radius:6px; border:none; font-size:12px; cursor:pointer; font-family:'Courier New',monospace; margin-top:12px; margin-right:8px; }
+.btn-gold { background:#c9a96e; color:#111; font-weight:bold; }
+.btn-blue { background:rgba(107,163,214,0.2); color:#6ba3d6; border:1px solid rgba(107,163,214,0.3); }
+.btn-green { background:rgba(77,184,122,0.2); color:#4db87a; border:1px solid rgba(77,184,122,0.3); }
+.btn-red { background:rgba(224,92,92,0.2); color:#e05c5c; border:1px solid rgba(224,92,92,0.3); }
+.log { background:#0c0c0e; border:1px solid rgba(255,255,255,0.07); border-radius:4px; padding:12px; margin-top:12px; font-size:11px; line-height:1.8; min-height:60px; white-space:pre-wrap; max-height:300px; overflow-y:auto; }
+.log .ok { color:#4db87a; }
+.log .err { color:#e05c5c; }
+.log .info { color:#9a9890; }
+.log .warn { color:#e8a844; }
+.divider { border-bottom:1px solid rgba(255,255,255,0.07); margin:20px 0; }
+.row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.status-badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:10px; margin-left:8px; }
+.status-ok { background:rgba(77,184,122,0.1); color:#4db87a; }
+.status-err { background:rgba(224,92,92,0.1); color:#e05c5c; }
+</style>
+</head>
+<body>
+
+<h1>⚡ Action Tester</h1>
+<p class="sub">Test Gmail email generation + Calendar event creation independently — no scoring, no Groq quota used</p>
+
+<!-- STEP 1: Pick a job -->
+<div class="card">
+  <div class="card-title">Step 1 — Select a job to test with</div>
+  <label>Job from DB</label>
+  <select id="jobSelect" onchange="fillJobData()">
+    <option value="">Loading jobs...</option>
+  </select>
+  <div class="row" style="margin-top:10px;">
+    <div>
+      <label>Company</label>
+      <input id="testCompany" value="Leena AI" />
+    </div>
+    <div>
+      <label>Role</label>
+      <input id="testRole" value="Entrepreneur in Residence (EIR)" />
+    </div>
+  </div>
+  <div>
+    <label>Company intel / Glassdoor summary</label>
+    <input id="testIntel" value="Leena AI is a 7-year-old Agentic AI company, $40M raised from Greycroft, Bessemer, B Capital, YC. 500+ enterprise customers." />
+  </div>
+  <div>
+    <label>Founder brief</label>
+    <input id="testFounder" value="Adit Jain (Founder/CEO), enterprise SaaS background, strong AI domain credibility." />
+  </div>
+  <div>
+    <label>Why interested (from scoring)</label>
+    <textarea id="testWhy">Leena AI's mission to transform enterprise back-office with AI Colleagues aligns directly with my interest in AI and enterprise. The EIR structure offers the founder-proximate learning I'm looking for before an MBA.</textarea>
+  </div>
+  <div>
+    <label>Job URL (for Calendar event)</label>
+    <input id="testUrl" value="https://www.leena.ai/careers" />
+  </div>
+</div>
+
+<!-- SECTION A: COVER EMAIL -->
+<div class="card">
+  <div class="card-title">A — Cover Email Generation (uses Groq)</div>
+  <p style="font-size:12px;color:#6e6c66;margin-bottom:12px;">Generates a personalised cover email using your story bank + JD data. Does NOT send anything — just generates the text.</p>
+
+  <button class="btn btn-gold" onclick="testEmailGenerate()">Generate cover email</button>
+  <button class="btn btn-blue" onclick="testEmailSend()">Test Gmail MCP send</button>
+  <button class="btn btn-blue" onclick="testEmailDraft()">Test Gmail MCP draft</button>
+
+  <div class="log" id="emailLog"><span class="info">Click a button above to test...</span></div>
+
+  <div id="emailResult" style="display:none;margin-top:12px;">
+    <label>Generated subject</label>
+    <input id="emailSubject" readonly />
+    <label>Generated body</label>
+    <textarea id="emailBody" style="height:200px;" readonly></textarea>
+    <button class="btn btn-green" onclick="copyEmail()">Copy email to clipboard</button>
+    <button class="btn btn-blue" onclick="openGmail()">Open Gmail compose</button>
+  </div>
+</div>
+
+<!-- SECTION B: CALENDAR -->
+<div class="card">
+  <div class="card-title">B — Calendar Prep Block (uses Google Calendar MCP)</div>
+  <p style="font-size:12px;color:#6e6c66;margin-bottom:12px;">Creates an interview prep event with CEO brief, company intel, and prep checklist. Tests the Calendar MCP write operation.</p>
+
+  <div class="row">
+    <div>
+      <label>Event date</label>
+      <input type="date" id="calDate" />
+    </div>
+    <div>
+      <label>Event time</label>
+      <input type="time" id="calTime" value="08:00" />
+    </div>
+  </div>
+
+  <button class="btn btn-gold" onclick="testCalendar()">Create Calendar prep block</button>
+  <button class="btn btn-blue" onclick="previewCalEvent()">Preview event details</button>
+
+  <div class="log" id="calLog"><span class="info">Click a button above to test...</span></div>
+
+  <div id="calResult" style="display:none;margin-top:12px;">
+    <label>Event title</label>
+    <input id="calTitle" readonly />
+    <label>Event description (copy this into Calendar)</label>
+    <textarea id="calDesc" style="height:200px;" readonly></textarea>
+    <button class="btn btn-green" onclick="copyCalDesc()">Copy description</button>
+    <button class="btn btn-blue" onclick="openCalendar()">Open Google Calendar</button>
+  </div>
+</div>
+
+<!-- SECTION C: MCP STATUS -->
+<div class="card">
+  <div class="card-title">C — MCP Connection Status</div>
+  <p style="font-size:12px;color:#6e6c66;margin-bottom:12px;">Check if Gmail and Calendar MCPs are reachable from the agent.</p>
+  <button class="btn btn-blue" onclick="checkMCPStatus()">Check MCP status</button>
+  <div class="log" id="mcpLog"><span class="info">Click to check...</span></div>
+</div>
+
+<script>
+// Load jobs from DB on page load
+async function loadJobs() {
+  try {
+    const res = await fetch('/api/jobs');
+    const data = await res.json();
+    const sel = document.getElementById('jobSelect');
+    sel.innerHTML = '<option value="">-- Manual input above --</option>';
+    (data.jobs || []).filter(j => j.score > 0).sort((a,b) => (b.score||0)-(a.score||0)).forEach(j => {
+      const opt = document.createElement('option');
+      opt.value = j._id;
+      opt.textContent = `${j.title} @ ${j.company} (${j.score}/100)`;
+      opt.dataset.job = JSON.stringify(j);
+      sel.appendChild(opt);
+    });
+    log('emailLog', `info:Loaded ${data.jobs?.length || 0} jobs from DB`);
+  } catch(e) { log('emailLog', `err:Could not load jobs: ${e.message}`); }
+}
+
+function fillJobData() {
+  const sel = document.getElementById('jobSelect');
+  const opt = sel.selectedOptions[0];
+  if (!opt?.dataset?.job) return;
+  const j = JSON.parse(opt.dataset.job);
+  document.getElementById('testCompany').value = j.company || '';
+  document.getElementById('testRole').value = j.title || '';
+  document.getElementById('testIntel').value = j.company_intel || '';
+  document.getElementById('testFounder').value = j.ceo_brief || '';
+  document.getElementById('testWhy').value = j.why_interested || '';
+  document.getElementById('testUrl').value = j.url || '';
+  log('emailLog', `info:Loaded: ${j.title} @ ${j.company} (score: ${j.score}/100)`);
+}
+
+function getData() {
+  return {
+    company: document.getElementById('testCompany').value,
+    role: document.getElementById('testRole').value,
+    intel: document.getElementById('testIntel').value,
+    founder: document.getElementById('testFounder').value,
+    why: document.getElementById('testWhy').value,
+    url: document.getElementById('testUrl').value,
+  };
+}
+
+function log(id, msg) {
+  const el = document.getElementById(id);
+  const parts = msg.split(':');
+  const type = parts[0];
+  const text = parts.slice(1).join(':');
+  const line = document.createElement('div');
+  line.className = type;
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+function clearLog(id) {
+  document.getElementById(id).innerHTML = '';
+}
+
+// ── A: EMAIL ────────────────────────────────────────────────────────────────
+
+async function testEmailGenerate() {
+  clearLog('emailLog');
+  const d = getData();
+  log('emailLog', `info:Generating cover email for ${d.role} at ${d.company}...`);
+  log('emailLog', `info:Using Groq llama-3.3-70b — this uses ~1 API call`);
+
+  try {
+    // Use the first scored job's ID or a fake one for testing
+    const sel = document.getElementById('jobSelect');
+    const jobId = sel.value || 'leena-ai-eir-pinned';
+
+    const res = await fetch(`/api/jobs/${jobId}/cover-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sendAsDraft: false }),
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      log('emailLog', `ok:Email generated successfully!`);
+      log('emailLog', `info:Subject: ${data.subject}`);
+      log('emailLog', `info:Body length: ${data.body?.length} chars`);
+      if (data.fallback) log('emailLog', `warn:Used fallback template (Groq may be rate limited)`);
+
+      document.getElementById('emailSubject').value = data.subject || '';
+      document.getElementById('emailBody').value = data.body || '';
+      document.getElementById('emailResult').style.display = 'block';
+    } else {
+      log('emailLog', `err:Generation failed: ${data.error}`);
+    }
+  } catch(e) {
+    log('emailLog', `err:${e.message}`);
+  }
+}
+
+async function testEmailSend() {
+  clearLog('emailLog');
+  const d = getData();
+  log('emailLog', `info:Testing Gmail MCP send for ${d.company}...`);
+  log('emailLog', `info:This tests the MCP write operation — sends to your configured email`);
+  log('emailLog', `warn:Gmail MCP requires authentication through Claude.ai session`);
+
+  const subject = document.getElementById('emailSubject').value || `Test: ${d.role} at ${d.company}`;
+  const body = document.getElementById('emailBody').value || 'Test email from job agent.';
+
+  try {
+    const sel = document.getElementById('jobSelect');
+    const jobId = sel.value || 'leena-ai-eir-pinned';
+    const res = await fetch(`/api/jobs/${jobId}/cover-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sendAsDraft: false }),
+    });
+    const data = await res.json();
+
+    if (data.sent) {
+      log('emailLog', `ok:Email SENT via Gmail MCP!`);
+      log('emailLog', `info:Response: ${data.gmailResponse || 'confirmed'}`);
+    } else if (data.authError) {
+      log('emailLog', `warn:Gmail MCP auth error (401) — MCP needs Claude.ai session token`);
+      log('emailLog', `info:This is expected when running outside Claude.ai`);
+      log('emailLog', `info:Solution: Use the Copy button and send manually from Gmail`);
+    } else {
+      log('emailLog', `err:Send failed: ${data.error || 'unknown'}`);
+    }
+  } catch(e) {
+    log('emailLog', `err:${e.message}`);
+  }
+}
+
+async function testEmailDraft() {
+  clearLog('emailLog');
+  log('emailLog', `info:Testing Gmail MCP draft save...`);
+  log('emailLog', `warn:Same auth requirement as send — needs Claude.ai session`);
+  try {
+    const sel = document.getElementById('jobSelect');
+    const jobId = sel.value || 'leena-ai-eir-pinned';
+    const res = await fetch(`/api/jobs/${jobId}/cover-email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sendAsDraft: true }),
+    });
+    const data = await res.json();
+    if (data.authError) {
+      log('emailLog', `warn:Gmail MCP returned 401 — auth required`);
+      log('emailLog', `info:The email was generated successfully (see above)`);
+      log('emailLog', `info:To send: copy the email and paste into Gmail manually`);
+    } else if (data.sent) {
+      log('emailLog', `ok:Saved as Gmail draft!`);
+    } else {
+      log('emailLog', `err:${data.error}`);
+    }
+  } catch(e) {
+    log('emailLog', `err:${e.message}`);
+  }
+}
+
+function copyEmail() {
+  const subj = document.getElementById('emailSubject').value;
+  const body = document.getElementById('emailBody').value;
+  navigator.clipboard.writeText(`Subject: ${subj}\n\n${body}`).then(() => {
+    log('emailLog', `ok:Copied to clipboard! Paste into Gmail.`);
+  });
+}
+
+function openGmail() {
+  const subj = encodeURIComponent(document.getElementById('emailSubject').value || '');
+  const body = encodeURIComponent(document.getElementById('emailBody').value || '');
+  window.open(`https://mail.google.com/mail/u/0/?view=cm&to=&su=${subj}&body=${body}`, '_blank');
+}
+
+// ── B: CALENDAR ──────────────────────────────────────────────────────────────
+
+function previewCalEvent() {
+  clearLog('calLog');
+  const d = getData();
+  const date = document.getElementById('calDate').value || new Date(Date.now() + 86400000).toISOString().split('T')[0];
+  const time = document.getElementById('calTime').value || '08:00';
+
+  const title = `Prep — ${d.role} @ ${d.company}`;
+  const desc = [
+    `ROLE: ${d.role} at ${d.company}`,
+    `JOB URL: ${d.url || 'N/A'}`,
+    '',
+    '━━ FOUNDER / CEO ━━',
+    d.founder || 'Review founder profile manually',
+    '',
+    '━━ COMPANY INTEL ━━',
+    d.intel || 'Research company news before call',
+    '',
+    '━━ WHY THIS ROLE ━━',
+    d.why || 'Review scoring breakdown in job agent dashboard',
+    '',
+    '━━ PREP CHECKLIST ━━',
+    '□ Research founder LinkedIn posts (last 3 months)',
+    '□ Review latest company news / product updates',
+    '□ Prepare 3 stories: IIT journey, Ola impact, why I want this',
+    '□ Prepare smart questions about role ownership and vision',
+    '□ Know CTC ask — frame as "open to discussion for right role"',
+  ].join('\n');
+
+  document.getElementById('calTitle').value = title;
+  document.getElementById('calDesc').value = desc;
+  document.getElementById('calResult').style.display = 'block';
+  log('calLog', `ok:Event preview ready: "${title}"`);
+  log('calLog', `info:Scheduled for: ${date} at ${time}`);
+  log('calLog', `info:Click "Open Google Calendar" to add manually, or "Create Calendar prep block" to test MCP`);
+}
+
+async function testCalendar() {
+  clearLog('calLog');
+  const d = getData();
+  log('calLog', `info:Testing Google Calendar MCP for ${d.company}...`);
+  log('calLog', `warn:Calendar MCP requires Claude.ai session authentication`);
+
+  try {
+    const sel = document.getElementById('jobSelect');
+    const jobId = sel.value || 'leena-ai-eir-pinned';
+    const res = await fetch(`/api/jobs/${jobId}/calendar-event`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const data = await res.json();
+
+    if (data.ok) {
+      log('calLog', `ok:Calendar event CREATED via MCP!`);
+      log('calLog', `info:Event: ${data.eventTitle}`);
+      log('calLog', `info:Scheduled: ${data.scheduledFor}`);
+    } else if (data.authError) {
+      log('calLog', `warn:Calendar MCP returned 401 — auth required`);
+      log('calLog', `info:Expected when running outside Claude.ai context`);
+      log('calLog', `info:Use "Preview event details" then "Open Google Calendar" to add manually`);
+      if (data.manualDetails) {
+        document.getElementById('calTitle').value = data.eventTitle || '';
+        document.getElementById('calDesc').value = data.manualDetails.description || '';
+        document.getElementById('calResult').style.display = 'block';
+        log('calLog', `info:Event details loaded above — ready to add manually`);
+      }
+    } else {
+      log('calLog', `err:${data.error}`);
+    }
+  } catch(e) {
+    log('calLog', `err:${e.message}`);
+  }
+}
+
+function copyCalDesc() {
+  const title = document.getElementById('calTitle').value;
+  const desc = document.getElementById('calDesc').value;
+  navigator.clipboard.writeText(`${title}\n\n${desc}`).then(() => {
+    log('calLog', `ok:Copied to clipboard!`);
+  });
+}
+
+function openCalendar() {
+  const title = encodeURIComponent(document.getElementById('calTitle').value || '');
+  const desc = encodeURIComponent(document.getElementById('calDesc').value || '');
+  window.open(`https://calendar.google.com/calendar/r/eventedit?text=${title}&details=${desc}`, '_blank');
+}
+
+// ── C: MCP STATUS ────────────────────────────────────────────────────────────
+
+async function checkMCPStatus() {
+  clearLog('mcpLog');
+  log('mcpLog', `info:Checking MCP connectivity...`);
+  log('mcpLog', `info:Note: MCP requires Claude.ai session token — direct API calls will get 401`);
+
+  // Test Gmail MCP endpoint reachability
+  try {
+    const r = await fetch('https://gmail.mcp.claude.com/mcp', { method: 'HEAD', mode: 'no-cors' });
+    log('mcpLog', `ok:Gmail MCP endpoint reachable`);
+  } catch(e) {
+    log('mcpLog', `warn:Gmail MCP endpoint: ${e.message} (expected from localhost)`);
+  }
+
+  // Test Calendar MCP
+  try {
+    const r = await fetch('https://gcal.mcp.claude.com/mcp', { method: 'HEAD', mode: 'no-cors' });
+    log('mcpLog', `ok:Google Calendar MCP endpoint reachable`);
+  } catch(e) {
+    log('mcpLog', `warn:Calendar MCP endpoint: ${e.message} (expected from localhost)`);
+  }
+
+  log('mcpLog', `info:━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+  log('mcpLog', `info:HOW MCP WORKS IN THIS AGENT:`);
+  log('mcpLog', `info:1. Gmail generation → uses Groq (works from agent)`);
+  log('mcpLog', `info:2. Gmail MCP send → needs Claude.ai session (401 from agent)`);
+  log('mcpLog', `info:3. Calendar MCP → needs Claude.ai session (401 from agent)`);
+  log('mcpLog', `info:━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+  log('mcpLog', `info:FOR DEMO: Use "Copy email" + "Open Gmail" / "Open Google Calendar"`);
+  log('mcpLog', `info:This shows the action being prepared and sent — demo-ready`);
+}
+
+// Set tomorrow as default date
+const tomorrow = new Date(Date.now() + 86400000);
+document.getElementById('calDate').value = tomorrow.toISOString().split('T')[0];
+
+loadJobs();
+</script>
+</body>
+</html>
