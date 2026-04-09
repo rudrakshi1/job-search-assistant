@@ -2,40 +2,42 @@
  * Candidate profile — personalised scoring configuration
  */
 
+/**
+ * Candidate profile — personalised scoring configuration
+ * Replace with your own details before running
+ */
+
 export const CANDIDATE = {
-  name: "Rudrakshi Singhal",
-  email: "singhalrudrakshi@gmail.com",
-  phone: "+91 9837902962",
-  linkedin: "linkedin.com/in/rudrakshi-singhal",
-  currentCTC: "4500000",
-  noticePeriod: "45 days — currently serving notice",
-  availableFrom: "mid-May 2026",
+  name: "Your Name",
+  email: "your.email@gmail.com",
+  phone: "+91 XXXXXXXXXX",
+  linkedin: "linkedin.com/in/your-profile",
+  currentCTC: "XX,00,000",
+  noticePeriod: "XX days — currently serving notice",
+  availableFrom: "Month Year",
   locations: ["Bengaluru", "Gurugram", "Mumbai", "Remote"],
   locationWeights: { "Bengaluru": 5, "Gurugram": 0, "Mumbai": 0, "Remote": 0 },
   workModes: ["office", "hybrid", "remote"],
-  education: "B.Tech Production & Industrial Engineering, IIT Delhi, 2025, CGPA 8.75",
-  targetRoles: ["Founder's Office", "Chief of Staff", "EIR", "Strategy & Operations", "VC Analyst", "VC Associate"],
-  targetSectors: ["AI", "automation", "fintech", "supply chain", "consumer", "D2C"],
-  background: "IIT Delhi Silver Medalist (8.75 CGPA, 2025). BCG Summer Associate 2024 — market sizing, operational frameworks, consumer and industrial sectors. Currently at Ola Electric Founders' Office (June 2025–present) working directly with founders on 0-to-1 strategic initiatives and EV market expansion. Founded ARIES AI Society at IIT Delhi. Published portfolio optimisation research on SSRN.",
+  education: "Your degree, Institution, Year, CGPA",
+  targetRoles: ["Founder's Office", "Chief of Staff", "EIR", "Strategy & Operations"],
+  targetSectors: ["AI", "automation", "fintech", "supply chain", "consumer"],
+  background: "Brief professional background for cover email generation",
   experience: [
-    "Ola Electric Founders' Office (2025–present) — 0-to-1 strategic initiatives, direct founder access, EV market expansion",
-    "BCG Summer Associate (2024) — market sizing, operational frameworks, consumer and industrial sectors",
-    "Founded ARIES AI Society at IIT Delhi",
-    "Published portfolio optimisation research on SSRN",
+    "Previous role 1 — key achievement",
+    "Previous role 2 — key achievement",
   ],
-  whyFoundersOffice: "I want to work directly with founders because that is where real learning happens — understanding how decisions get made under uncertainty and how companies are built from scratch.",
-  whyAI: "I am drawn to AI because it is reshaping how work gets done at a fundamental level. I want to be at the intersection of AI and business building.",
+  whyFoundersOffice: "Your reason for wanting founder-proximate roles",
+  whyAI: "Your interest in AI/tech",
 };
 
 export const TOP_TIER_COMPANIES = [
   'peak xv', 'accel', 'sequoia', 'lightspeed', 'matrix partners',
   'kalaari', 'blume', 'nexus', 'elevation', 'tiger global',
-  'leena ai', 'slintel', 'darwinbox', 'chargebee', 'postman',
 ];
 
 export const TOP_TIER_INVESTORS = [
   'Peak XV', 'Accel', 'Sequoia', 'Lightspeed', 'Y Combinator',
-  'Bessemer', 'Matrix', 'Kalaari', 'Blume', 'Nexus', 'B Capital', 'Greycroft',
+  'Bessemer', 'Matrix', 'Kalaari', 'Blume', 'Nexus',
 ];
 
 export const HARD_FILTERS = {
@@ -43,8 +45,6 @@ export const HARD_FILTERS = {
 };
 
 export const STORY_BANK = {
-  founders_office: "I want to work directly with founders because that is where real learning happens — understanding how decisions get made under uncertainty and how companies are built from scratch.",
-  why_ai: "I am drawn to AI because it is reshaping how work gets done at a fundamental level. I want to be at the intersection of AI and business building.",
-  why_fintech: "Fintech is where I see the biggest opportunity for impact in India — financial inclusion at scale through better products.",
-  why_supply_chain: "Supply chain is where Ola Electric gave me my deepest operational experience — I understand how physical and digital systems interact at scale.",
+  founders_office: "I want to work directly with founders because that is where real learning happens.",
+  why_ai: "I am drawn to AI because it is reshaping how work gets done at a fundamental level.",
 };
