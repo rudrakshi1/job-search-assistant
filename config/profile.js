@@ -41,7 +41,7 @@ export const TOP_TIER_INVESTORS = [
 ];
 
 export const HARD_FILTERS = {
-  minBaseSalary: 3000000,
+  minBaseSalary: X000000,
 };
 
 export const STORY_BANK = {
